@@ -4066,6 +4066,15 @@ EXPORT bool riveArtboardHasComponentDirt(WrappedArtboard* wrappedArtboard)
     return wrappedArtboard->artboard()->hasDirt(ComponentDirt::Components);
 }
 
+EXPORT bool riveArtboardDidChange(WrappedArtboard* wrappedArtboard)
+{
+    if (wrappedArtboard == nullptr)
+    {
+        return false;
+    }
+    return wrappedArtboard->artboard()->didChange();
+}
+
 EXPORT void riveArtboardSetOpacity(WrappedArtboard* wrappedArtboard,
                                    float opacity)
 {

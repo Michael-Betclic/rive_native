@@ -2136,6 +2136,16 @@ class WebRiveArtboard extends Artboard {
       .callAsFunction(null, _pointer.toJS) as js.JSNumber);
 
   @override
+  bool get didChange {
+    final didChange = RiveWasm.riveArtboardDidChange;
+    if (didChange == null) {
+      return true;
+    }
+    return _wasmBool(
+        didChange.callAsFunction(null, _pointer.toJS) as js.JSNumber);
+  }
+
+  @override
   bool updatePass() {
     return _wasmBool(RiveWasm.riveArtboardUpdatePass
         .callAsFunction(null, _pointer.toJS) as js.JSNumber);

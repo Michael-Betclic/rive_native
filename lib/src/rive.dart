@@ -1371,6 +1371,14 @@ abstract class Artboard {
   /// The factory that was used to load this artboard.
   Factory? get riveFactory;
 
+  /// Whether anything that affects how this artboard draws changed since it
+  /// was last drawn: set by any component (or nested artboard) becoming dirty,
+  /// cleared by the draw.
+  ///
+  /// `true` when the native library predates this flag, so callers that skip
+  /// unchanged frames degrade to drawing every frame.
+  bool get didChange;
+
   /* INTERNAL */
 
   @internal

@@ -444,6 +444,15 @@ final bool Function(Pointer<Void> artboard) _riveArtboardHasComponentDirt =
         .lookup<NativeFunction<Bool Function(Pointer<Void>)>>(
             'riveArtboardHasComponentDirt')
         .asFunction();
+// Looked up lazily and optionally: the prebuilt libraries that bin/setup.dart
+// downloads do not export it.
+final bool Function(Pointer<Void> artboard)? _riveArtboardDidChange =
+    nativeLib.providesSymbol('riveArtboardDidChange')
+        ? nativeLib
+            .lookup<NativeFunction<Bool Function(Pointer<Void>)>>(
+                'riveArtboardDidChange')
+            .asFunction()
+        : null;
 final double Function(Pointer<Void> artboard) _riveArtboardGetWidth = nativeLib
     .lookup<NativeFunction<Float Function(Pointer<Void>)>>(
         'riveArtboardGetWidth')
@@ -4306,6 +4315,9 @@ class FFIRiveArtboard extends Artboard
   bool hasComponentDirt() {
     return _riveArtboardHasComponentDirt(pointer);
   }
+
+  @override
+  bool get didChange => _riveArtboardDidChange?.call(pointer) ?? true;
 
   @override
   List<TextValueRunRuntime> get textRuns {

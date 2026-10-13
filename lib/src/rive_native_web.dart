@@ -1094,6 +1094,8 @@ class RiveWasm {
   static late js.JSFunction riveArtboardStateMachineNamed;
   static late js.JSFunction riveArtboardStateMachineAt;
   static late js.JSFunction riveArtboardHasComponentDirt;
+  // Absent from wasm builds that predate it.
+  static js.JSFunction? riveArtboardDidChange;
   static late js.JSFunction riveArtboardUpdatePass;
   static late js.JSFunction deleteStateMachineInstance;
   static late js.JSFunction stateMachineInstanceName;
@@ -1689,6 +1691,8 @@ class RiveWasm {
         module['_riveArtboardStateMachineAt'] as js.JSFunction;
     riveArtboardHasComponentDirt =
         module['_riveArtboardHasComponentDirt'] as js.JSFunction;
+    riveArtboardDidChange =
+        module['_riveArtboardDidChange'] as js.JSFunction?;
     riveArtboardUpdatePass = module['_riveArtboardUpdatePass'] as js.JSFunction;
     setArtboardLayoutChangedCallback =
         module['setArtboardLayoutChangedCallback'] as js.JSFunction;
