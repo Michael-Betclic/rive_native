@@ -12,7 +12,12 @@ import 'package:rive_native/semantics.dart';
 import 'package:rive_native/src/deferred_pacing_diagnostics.dart';
 import 'package:rive_native/src/rive.dart' show RiveImageDecodes, RiveProfiler;
 
-/// When the Flutter renderer ([FlutterRiveRenderBox]) repaints a painter.
+/// When the Flutter renderer ([FlutterRiveRenderBox], used with
+/// `Factory.flutter`) repaints a [ProceduralPainter].
+///
+/// Mirrors `RiveView.DrawOptimization` in the Rive iOS runtime and
+/// `DrawOptimizationOptions` in the web runtime. `Factory.rive` ignores it
+/// and always draws.
 enum DrawOptimization {
   /// Repaint after every advance, whether or not anything changed.
   alwaysDraw,
@@ -20,8 +25,16 @@ enum DrawOptimization {
   /// Repaint only after an advance that changed what the painter draws
   /// ([ProceduralPainter.didChange]), or when something outside the artboard
   /// requires it: first frame, layout, painter or setting change, pointer
-  /// event, image decode. The render box becomes a repaint boundary so an
-  /// unchanged frame reuses its previous layer.
+  /// event, image decode, last advance before the animation settles. The
+  /// render box becomes a repaint boundary so an unchanged frame reuses its
+  /// previous layer.
+  ///
+  /// The artboard is still advanced on every tick, so a state machine that
+  /// never settles keeps the ticker, and therefore frames, running.
+  ///
+  /// Content whose visual change the runtime does not flag as dirty would
+  /// show a stale frame, hence the opt-in. With native libraries that do not
+  /// export the change flag this behaves like [alwaysDraw].
   drawOnChanged,
 }
 
@@ -36,7 +49,8 @@ abstract base class ProceduralPainter extends RivePainter {
   /// Request a repaint of the artboard.
   void scheduleRepaint() => notifyListeners();
 
-  /// See [DrawOptimization]. Only the Flutter renderer honours it.
+  /// When the Flutter renderer repaints this painter. Defaults to
+  /// [DrawOptimization.alwaysDraw]. See [DrawOptimization].
   DrawOptimization get drawOptimization => _drawOptimization;
   DrawOptimization _drawOptimization = DrawOptimization.alwaysDraw;
   set drawOptimization(DrawOptimization value) {

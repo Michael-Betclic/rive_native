@@ -1,3 +1,8 @@
+## Unreleased
+
+- Adds `Artboard.didChange`, whether anything that affects how the artboard draws changed since it was last drawn.
+- Adds `ProceduralPainter.drawOptimization` (`DrawOptimization.alwaysDraw` by default, or `DrawOptimization.drawOnChanged`). With `drawOnChanged`, the Flutter renderer (`Factory.flutter`) skips the repaint of frames where the artboard did not change and isolates the widget in its own repaint boundary, as the iOS (`RiveView.drawOptimization`) and web (`drawingOptions`) runtimes do. Opt-in; `Factory.rive` is unaffected.
+
 ## 0.2.0-dev.3
 
 - Updates the Rive C++ runtime and renderer for the latest features, bug fixes, and performance improvements.
