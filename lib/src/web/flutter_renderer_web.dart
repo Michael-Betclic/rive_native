@@ -102,6 +102,7 @@ class WebFlutterFactory extends WebFactory {
       bytes,
       (uiImage) {
         flutterImage.image = uiImage;
+        rive.RiveImageDecodes.count++;
         RiveWasm.renderImageSetSize.callAsFunction(
           null,
           imagePtr.toJS,
@@ -130,6 +131,7 @@ class WebFlutterFactory extends WebFactory {
           image.height.toJS,
         );
         flutterImage.image = image;
+        rive.RiveImageDecodes.count++;
         flutterImage.completer?.complete();
       },
     );

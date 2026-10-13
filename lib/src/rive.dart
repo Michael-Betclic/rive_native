@@ -3240,3 +3240,11 @@ abstract class RiveProfiler {
   /// No-op if profiling is not active or not supported.
   void endFrame();
 }
+
+/// Counts the images the Flutter renderer finished decoding. A decoded image
+/// becomes drawable without dirtying any artboard, so render boxes that skip
+/// unchanged frames compare this count to know they must draw again.
+@internal
+abstract final class RiveImageDecodes {
+  static int count = 0;
+}

@@ -11,7 +11,7 @@ import 'src/rive_native_ffi.dart'
     if (dart.library.js_interop) 'src/rive_native_web.dart';
 
 export 'src/render_resolution.dart';
-export 'src/rive.dart' hide RiveProfiler;
+export 'src/rive.dart' hide RiveImageDecodes, RiveProfiler;
 export 'src/rive_renderer.dart';
 export 'package:rive_native/math.dart';
 export 'src/rive_artboard_layout.dart';

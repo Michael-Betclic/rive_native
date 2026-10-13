@@ -10,7 +10,20 @@ import 'package:rive_native/rive_deferred.dart' as rive_deferred;
 import 'package:rive_native/rive_native.dart';
 import 'package:rive_native/semantics.dart';
 import 'package:rive_native/src/deferred_pacing_diagnostics.dart';
-import 'package:rive_native/src/rive.dart' show RiveProfiler;
+import 'package:rive_native/src/rive.dart' show RiveImageDecodes, RiveProfiler;
+
+/// When the Flutter renderer ([FlutterRiveRenderBox]) repaints a painter.
+enum DrawOptimization {
+  /// Repaint after every advance, whether or not anything changed.
+  alwaysDraw,
+
+  /// Repaint only after an advance that changed what the painter draws
+  /// ([ProceduralPainter.didChange]), or when something outside the artboard
+  /// requires it: first frame, layout, painter or setting change, pointer
+  /// event, image decode. The render box becomes a repaint boundary so an
+  /// unchanged frame reuses its previous layer.
+  drawOnChanged,
+}
 
 abstract base class ProceduralPainter extends RivePainter {
   /// Called each frame to advance the animation.
@@ -22,6 +35,19 @@ abstract base class ProceduralPainter extends RivePainter {
 
   /// Request a repaint of the artboard.
   void scheduleRepaint() => notifyListeners();
+
+  /// See [DrawOptimization]. Only the Flutter renderer honours it.
+  DrawOptimization get drawOptimization => _drawOptimization;
+  DrawOptimization _drawOptimization = DrawOptimization.alwaysDraw;
+  set drawOptimization(DrawOptimization value) {
+    if (_drawOptimization == value) return;
+    _drawOptimization = value;
+    notifyListeners();
+  }
+
+  /// Whether what [paint] would draw changed since the last [paint].
+  /// Painters that cannot tell answer `true`.
+  bool get didChange => true;
 }
 
 abstract base class ArtboardPainter extends ProceduralPainter {
@@ -56,6 +82,9 @@ base class BasicArtboardPainter extends ArtboardPainter
     bool advanced = _artboard?.advance(elapsedSeconds) ?? false;
     return advanced || (_artboard?.updatePass() ?? false);
   }
+
+  @override
+  bool get didChange => artboard?.didChange ?? true;
 
   @mustCallSuper
   @override
@@ -1195,26 +1224,105 @@ abstract class RiveRenderBox<T extends RivePainter> extends RenderBox
 class FlutterRiveRenderBox extends RiveRenderBox<ProceduralPainter> {
   bool _shouldAdvance = false;
 
+  /// Set by anything outside the artboard that requires the next advance to
+  /// paint even if the artboard reports no change; cleared by [paint].
+  bool _forcePaint = true;
+  int _imageDecodes = RiveImageDecodes.count;
+  bool _isRepaintBoundary = false;
+
   @override
   bool get shouldAdvance => _shouldAdvance;
+
+  @override
+  bool get isRepaintBoundary => _isRepaintBoundary;
+
+  @override
+  set painter(ProceduralPainter? value) {
+    if (rivePainter != value) {
+      rivePainter?.removeListener(_onPainterChanged);
+      value?.addListener(_onPainterChanged);
+      _forcePaint = true;
+    }
+    super.painter = value;
+    _syncRepaintBoundary();
+  }
+
+  void _onPainterChanged() {
+    _forcePaint = true;
+    _syncRepaintBoundary();
+  }
+
+  bool get _drawOnChanged =>
+      rivePainter?.drawOptimization == DrawOptimization.drawOnChanged;
+
+  void _syncRepaintBoundary() {
+    final drawOnChanged = _drawOnChanged;
+    if (_isRepaintBoundary == drawOnChanged) return;
+    _isRepaintBoundary = drawOnChanged;
+    markNeedsCompositingBitsUpdate();
+    markNeedsPaint();
+  }
+
+  /// Whether the advance that just ran left something new to show.
+  bool _needsPaint(ProceduralPainter? painter) {
+    if (painter == null || !_drawOnChanged || _forcePaint || !_shouldAdvance) {
+      return true;
+    }
+
+    final imageDecodes = RiveImageDecodes.count;
+    if (imageDecodes != _imageDecodes) {
+      _imageDecodes = imageDecodes;
+      return true;
+    }
+
+    return painter.didChange;
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    _forcePaint = true;
+    super.attach(owner);
+  }
+
+  @override
+  void performLayout() {
+    _forcePaint = true;
+    super.performLayout();
+  }
+
+  @override
+  void rivePointerEvent(PointerEvent event, HitTestEntry<HitTestTarget> entry) {
+    _forcePaint = true;
+    super.rivePointerEvent(event, entry);
+  }
+
+  @override
+  void dispose() {
+    rivePainter?.removeListener(_onPainterChanged);
+    super.dispose();
+  }
 
   @override
   @mustCallSuper
   void frameCallback(Duration duration) {
     super.frameCallback(duration);
 
-    _shouldAdvance = rivePainter?.advance(elapsedSeconds) ?? false;
+    final painter = rivePainter;
+    _shouldAdvance = painter?.advance(elapsedSeconds) ?? false;
 
     if (!_shouldAdvance) {
       stopTicker();
     }
 
-    markNeedsPaint();
+    if (_needsPaint(painter)) {
+      markNeedsPaint();
+    }
   }
 
   @protected
   @override
   void paint(PaintingContext context, Offset offset) {
+    _forcePaint = false;
     final Canvas canvas = context.canvas;
     canvas.save();
     canvas.translate(offset.dx, offset.dy);

@@ -540,6 +540,7 @@ class FFIFlutterFactory extends FFIFactory implements Finalizable {
       bytes,
       (uiImage) {
         flutterImage.image = uiImage;
+        rive.RiveImageDecodes.count++;
         _renderImageSetSize(image, uiImage.width, uiImage.height);
         flutterImage.completer?.complete(FFIRenderImage(image));
       },
@@ -560,6 +561,7 @@ class FFIFlutterFactory extends FFIFactory implements Finalizable {
       bytesList,
       (uiImage) {
         flutterImage.image = uiImage;
+        rive.RiveImageDecodes.count++;
         _renderImageSetSize(image, uiImage.width, uiImage.height);
         flutterImage.completer?.complete(null);
       },
